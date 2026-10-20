@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: Reproducible install, TypeScript build, and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - name: Require committed lockfile
+        shell: bash
+        run: |
+          if [[ ! -f package-lock.json ]]; then
+            echo '::error::package-lock.json is missing. Run the Bootstrap npm lockfile workflow, download its artifact, commit package-lock.json, and rerun CI.'
+            exit 1
+          fi
+          test "$(npm --version)" = "10.9.2"
+      - name: Clean lockfile-based install
+        run: npm ci --no-audit --no-fund
+      - name: Production build (includes TypeScript project checks)
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+
+  database:
+    name: Disposable Supabase migrations and pgTAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Apply migrations 001–006 in order
+        run: supabase db reset --local
+      - name: Run all SQL regression tests
+        run: supabase test db --local
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup

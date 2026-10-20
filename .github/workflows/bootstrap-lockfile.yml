@@ -1,0 +1,30 @@
+name: Bootstrap npm lockfile (one-time setup)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    name: Generate and validate package-lock.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Pin npm version
+        run: npm install --global npm@10.9.2
+      - name: Generate lockfile from declared dependencies
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install with generated lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Upload lockfile for review and commit
+        uses: actions/upload-artifact@v4
+        with:
+          name: pos-package-lock-npm-10.9.2-node-22.16.0
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 14
