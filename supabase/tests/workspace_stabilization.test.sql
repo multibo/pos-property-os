@@ -33,8 +33,7 @@ select is((select count(*)::int from public.properties where name='Stable A'),1,
 select throws_ok($$insert into public.tenants(workspace_id,property_id,name,email,phone,unit_identifier,lease_start,lease_end,monthly_rent) select wa,pb,'Cross property','cross1@example.invalid','123','1','2026-01-01','2026-12-31',0 from pos_stab_rows$$,'23503',NULL,'cross-workspace property FK rejects forged relation');
 insert into public.tenants(workspace_id,property_id,name,email,phone,unit_identifier,lease_start,lease_end,monthly_rent) select wa,pa,'Tenant A','tenantA@example.invalid','123','1','2026-01-01','2026-12-31',0 from pos_stab_rows;
 select throws_ok($$insert into public.maintenance_requests(workspace_id,property_id,tenant_id,title,description) select wa,pb,(select id from public.tenants where email='tenantA@example.invalid'),'Bad link','wrong property' from pos_stab_rows$$,'23503',NULL,'tenant must belong to same property as maintenance request');
-update public.properties set workspace_id=(select wb from pos_stab_rows) where name='Stable A';
-select is((select count(*)::int from public.properties where name='Stable A'),1,'changing workspace id does not grant access');
+select throws_ok($update public.properties set workspace_id=(select wb from pos_stab_rows) where name='Stable A'$,'42501',NULL,'changing workspace id is rejected by RLS');
 select set_config('request.jwt.claim.sub','51000000-0000-4000-8000-000000000001',true);
 select throws_ok($$delete from public.properties where name='Stable A'$$,'23503',NULL,'property deletion blocked while tenant dependency exists');
 select ok(public.workspace_has_role((select wa from pos_stab_rows),array['owner']),'owner role helper works without recursive RLS');
