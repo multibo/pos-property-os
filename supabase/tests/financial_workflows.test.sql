@@ -9,7 +9,7 @@ insert into auth.users (id,aud,role,email,encrypted_password,email_confirmed_at,
 create temporary table fin_ids as
 select (select id from public.workspaces where owner_id='61000000-0000-4000-8000-000000000001' order by created_at desc limit 1) wa,
        (select id from public.workspaces where owner_id='63000000-0000-4000-8000-000000000003' order by created_at desc limit 1) wb;
-insert into public.workspace_memberships(workspace_id,user_id,role) select wa,'62000000-0000-4000-8000-000000000002','viewer' from fin_ids on conflict do update set role='viewer';
+insert into public.workspace_memberships(workspace_id,user_id,role) select wa,'62000000-0000-4000-8000-000000000002','viewer' from fin_ids on conflict (workspace_id, user_id) do update set role='viewer';
 insert into public.properties(workspace_id,name,address,property_type,unit_count) select wa,'Fin A','A','House',1 from fin_ids on conflict do nothing;
 insert into public.properties(workspace_id,name,address,property_type,unit_count) select wb,'Fin B','B','House',1 from fin_ids on conflict do nothing;
 insert into public.tenants(workspace_id,property_id,name,email,phone,unit_identifier,lease_start,lease_end,monthly_rent)
